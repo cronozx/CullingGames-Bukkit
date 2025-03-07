@@ -1,0 +1,15 @@
+#only need to set this category on battle royal server
+items:
+  DIAMOND_SWORD:
+    chance: 100.0
+    amount: 1
+
+battle_royal_server_info:
+  ip: 192.168.0.0 #example change pls
+  port: 3000 #example change pls
+  server-name: example #example change pls
+
+redis_db:
+  ip: 192.168.0.0 #example change pls
+  port: 3000 #example change pls
+  password: password #example change pls
