@@ -61,14 +61,6 @@ public class ConfigManager {
         return itemChances;
     }
 
-    public String getServerIp() {
-        return config.getString("battle_royal_server_info" + ".ip");
-    }
-
-    public int getServerPort() {
-        return config.getInt("battle_royal_server_info" + ".port");
-    }
-
     public String getDbServerIp() {
         return config.getString("redis_db" + ".ip");
     }
@@ -80,6 +72,32 @@ public class ConfigManager {
     public String getDbServerPass() { return config.getString("redis_db" + ".password"); }
 
     public String getServerName() { return config.getString("battle_royal_server_info" + ".server-name"); }
+
+    public boolean isBattleRoyalServer() { return config.getBoolean("battle_royal_server_info" + ".is_battle_royal_server"); }
+
+    public int getMinLobbySize() { return config.getInt("lobbies" + ".min-lobby-size"); }
+
+    public int getMaxLobbySize() { return config.getInt("lobbies" + ".max-lobby-size"); }
+
+    public String getWorldName() { return plugin.getConfig().getString("storm-info" + ".world-name"); }
+
+    public double getInitialBorderSize() { return plugin.getConfig().getDouble("storm-info" + ".initial-border-size"); }
+
+    public double getFinalBorderSize() {return plugin.getConfig().getDouble("storm-info" + ".final-border-size"); }
+
+    public int getShrinkTime() { return plugin.getConfig().getInt("storm-info" + ".shrink-time"); }
+
+    public int getZonePhases() { return plugin.getConfig().getInt("storm-info" + ".zone-phases"); }
+
+    public int getPauseDuration() { return plugin.getConfig().getInt("storm-info" + ".pause-duration"); }
+
+    public int getAirdropStartPhase() { return plugin.getConfig().getInt("airdrops" + ".airdrop-phase-start"); }
+
+    public int getAirdropInterval() { return plugin.getConfig().getInt("airdrops" + ".airdrop-interval"); }
+
+    public int getMaxAirdrops() { return plugin.getConfig().getInt("airdrops" + ".max-airdrops"); }
+
+    public boolean getStopOnFinalPhase() { return plugin.getConfig().getBoolean("airdrops" + ".stop-on-final-phase"); }
 
     public void saveConfig() {
         try {

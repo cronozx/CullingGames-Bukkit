@@ -4,7 +4,6 @@ import cronozx.cullinggames.CullingGames;
 import cronozx.cullinggames.database.CoreDatabase;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.WorldBorder;
 import org.bukkit.entity.Player;
 
 import java.util.Random;
@@ -12,25 +11,33 @@ import java.util.Random;
 public class TeleportUtil {
 
     private static final CoreDatabase database = CullingGames.getInstance().getDatabase();
+    private static final ConfigManager configManager = CullingGames.getInstance().getConfigManager();
     private static final Random random = CullingGames.getInstance().getRandom();
 
     public static void randomTP(World world, Player player) {
-        WorldBorder border = world.getWorldBorder();
+        double centerX = world.getSpawnLocation().getX();
+        double centerZ = world.getSpawnLocation().getZ();
+        double size = configManager.getInitialBorderSize() / 2;
 
-        double centerX = border.getCenter().getX();
-        double centerZ = border.getCenter().getZ();
-        double size = border.getSize() / 2;
+        double angle = random.nextDouble() * 2 * Math.PI;
+        double distance = Math.sqrt(random.nextDouble()) * size;
 
-        double x = centerX + (random.nextDouble() * size * 2) - size;
-        double z = centerZ + (random.nextDouble() * size * 2) - size;
+        double x = centerX + distance * Math.cos(angle);
+        double z = centerZ + distance * Math.sin(angle);
         double y = world.getHighestBlockYAt((int) x, (int) z) + 1;
 
         Location randomLocation = new Location(world, x, y, z);
+
+        if (!randomLocation.getNearbyPlayers(20).isEmpty()) {
+            randomTP(world, player);
+            return;
+        }
+
         player.teleport(randomLocation);
     }
 
     public static void teleportPlayerVelocity(String server, String playerName) {
         String message = "teleportTo:" + server + ":" + playerName;
-        database.sendMessageToDB("cullinggames:jedis", message);
+        database.sendMessageToRedis("cullinggames:velocity", message);
     }
 }

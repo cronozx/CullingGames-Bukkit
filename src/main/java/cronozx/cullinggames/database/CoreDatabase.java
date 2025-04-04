@@ -1,6 +1,7 @@
 package cronozx.cullinggames.database;
 
 import cronozx.cullinggames.CullingGames;
+import cronozx.cullinggames.tasks.StartBattleRoyal;
 import cronozx.cullinggames.util.ConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -8,69 +9,33 @@ import org.bukkit.entity.Player;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.JedisPubSub;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 public class CoreDatabase {
-
+    private static final CullingGames plugin = CullingGames.getInstance();
     private static final ConfigManager configManager = CullingGames.getInstance().getConfigManager();
-    private static String dbPassword = configManager.getDbServerPass();
+    private static final String dbPassword = configManager.getDbServerPass();
     private static final JedisPool jedisPool = new JedisPool(new JedisPoolConfig(), configManager.getDbServerIp(), configManager.getDbServerPort(), 2000, dbPassword);
+    private  static final Logger logger = CullingGames.getInstance().getLogger();
 
-    //Elo methods
     public void closeConnection() {
         jedisPool.close();
     }
 
-    public void addPlayer(OfflinePlayer player) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            jedis.hset("playerElo:" + player.getUniqueId(), "username", player.getName());
-            jedis.hset("playerElo:" + player.getUniqueId(), "elo", "100");
-        }
-    }
-
-    public boolean playerExists(OfflinePlayer player) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            return jedis.exists("playerElo:" + player.getUniqueId());
-        }
-    }
-
-    public int getPlayerElo(OfflinePlayer player) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            if (!playerExists(player)) {
-                addPlayer(player);
-            }
-            return Integer.parseInt(jedis.hget("playerElo:" + player.getUniqueId(), "elo"));
-        }
-    }
-
-    public void setPlayerElo(OfflinePlayer player, int elo) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            if (!playerExists(player)) {
-                addPlayer(player);
-            }
-            jedis.hset("playerElo:" + player.getUniqueId(), "elo", String.valueOf(elo));
-        }
-    }
-
     //Queue Methods
-    public void queuePlayer(Player player) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            jedis.rpush("playerQueue", player.getUniqueId().toString());
-        }
-    }
-
     public ArrayList<OfflinePlayer> getQueue() {
         ArrayList<OfflinePlayer> queue = new ArrayList<>();
         try (Jedis jedis = jedisPool.getResource()) {
             List<String> playerUUIDs = jedis.lrange("playerQueue", 0, -1);
-            System.out.println("Retrieved player UUIDs from queue: " + playerUUIDs);
+
             for (String uuid : playerUUIDs) {
                 OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
                 queue.add(player);
-                System.out.println("Player added to queue list: " + player.getName());
             }
         }
         return queue;
@@ -78,28 +43,10 @@ public class CoreDatabase {
 
     public void clearQueue() {
         try (Jedis jedis = jedisPool.getResource()) {
-            String key = "playerQueue";
-            String keyType = jedis.type(key);
-
-            if ("list".equals(keyType)) {
-                jedis.del(key);
-            } else {
-                System.err.println("Expected 'playerQueue' to be a string but found: " + keyType);
-            }
+            jedis.del("playerQueue");
         }
     }
 
-    public boolean playerInQueue(OfflinePlayer player) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            return jedis.lrange("playerQueue", 0, -1).contains(player.getUniqueId().toString());
-        }
-    }
-
-    public void unQueuePlayer(OfflinePlayer player) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            jedis.lrem("playerQueue", 0, player.getUniqueId().toString());
-        }
-    }
     //Points Methods
     public void initPointsPlayers(ArrayList<OfflinePlayer> list) {
         try (Jedis jedis = jedisPool.getResource()) {
@@ -122,6 +69,21 @@ public class CoreDatabase {
         }
     }
 
+    public ArrayList<OfflinePlayer> getAllPlayersInGame() {
+        ArrayList<OfflinePlayer> players = new ArrayList<>();
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.hkeys("playerPoints").forEach(playerUUID -> players.add(Bukkit.getOfflinePlayer(UUID.fromString(playerUUID))));
+        }
+
+        return players;
+    }
+
+    public void clearPlayersInGame() {
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.hdel("playerPoints");
+        }
+    }
+
     //Util Methods
     public boolean inCullingGames(OfflinePlayer player) {
         try (Jedis jedis = jedisPool.getResource()) {
@@ -136,17 +98,30 @@ public class CoreDatabase {
     }
 
     public int playersLeft() {
-        long players;
         try (Jedis jedis = jedisPool.getResource()) {
-            players = jedis.llen("playerPoints");
+            return (int) jedis.hlen("playerPoints");
         }
-
-        return (int) players;
     }
 
-    public void sendMessageToDB(String server, String message) {
+
+    //Messaging Methods
+    public void sendMessageToRedis(String server, String message) {
         try (Jedis jedis = jedisPool.getResource()) {
             jedis.publish(server, message);
+        }
+    }
+
+    public void onMessageFromRedis() {
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.subscribe(new JedisPubSub() {
+                @Override
+                public void onMessage(String channel, String message) {
+                    logger.info("Message: " + message);
+                    if (message.equals("start") && configManager.isBattleRoyalServer()) {
+                        Bukkit.getScheduler().runTask(plugin, new StartBattleRoyal());
+                    }
+                }
+            }, "cullinggames:bukkit");
         }
     }
 }

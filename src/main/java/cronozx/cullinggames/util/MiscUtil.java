@@ -1,22 +1,11 @@
 package cronozx.cullinggames.util;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 public class MiscUtil {
 
-    public static void deleteDirectory(Path path) {
-        try {
-            if (Files.exists(path)) {
-                Files.walk(path)
-                        .sorted(java.util.Comparator.reverseOrder())
-                        .map(Path::toFile)
-                        .forEach(File::delete);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public static String formatTime(int seconds) {
+        int minutes = seconds / 60;
+        int remainingSeconds = seconds % 60;
+        return String.format("%02d:%02d", minutes, remainingSeconds);
     }
+
 }

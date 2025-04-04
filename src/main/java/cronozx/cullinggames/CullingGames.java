@@ -1,32 +1,29 @@
 package cronozx.cullinggames;
 
-import com.velocitypowered.api.proxy.server.ServerInfo;
+import com.badbones69.crazyenvoys.CrazyEnvoys;
+import cronozx.cullinggames.commands.ForceStartCommand;
 import cronozx.cullinggames.commands.JoinQueueCommand;
-import cronozx.cullinggames.commands.QueueTestCommand;
 import cronozx.cullinggames.commands.ReloadCommand;
 import cronozx.cullinggames.database.CoreDatabase;
 import cronozx.cullinggames.events.PlayerDiesEvent;
-import cronozx.cullinggames.events.PlayerLeaveEvent;
 import cronozx.cullinggames.util.ConfigManager;
 import cronozx.cullinggames.util.ItemManager;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.plugin.messaging.PluginMessageListener;
-import org.jetbrains.annotations.NotNull;
 
-import java.net.InetSocketAddress;
 import java.util.Random;
 import java.util.logging.Logger;
 
-public final class CullingGames extends JavaPlugin implements @NotNull PluginMessageListener {
+public final class CullingGames extends JavaPlugin {
 
     private CoreDatabase database;
     private ConfigManager configManager;
     private ItemManager itemManager;
-    private ServerInfo serverInfo;
     private final Logger logger = Logger.getLogger(CullingGames.class.getName());
     private final Random random = new Random();
+    private final Thread rediThread = new Thread(() -> database.onMessageFromRedis());
+    private boolean airDropsEnabled;
+    private CrazyEnvoys crazyEnvoys;
 
     @Override
     public void onEnable() {
@@ -36,47 +33,53 @@ public final class CullingGames extends JavaPlugin implements @NotNull PluginMes
             getDataFolder().mkdirs();
         }
 
-        this.getServer().getMessenger().registerOutgoingPluginChannel(this, "cullinggames:jedis");
-
-        InetSocketAddress address = new InetSocketAddress("127.0.0.1", 25570);
-        serverInfo = new ServerInfo("CullingGames", address);
-
         configManager = new ConfigManager(this);
         configManager.loadConfig();
 
         database = new CoreDatabase();
 
+        rediThread.start();
+
         itemManager = new ItemManager();
         registerCommands();
-        registerEvents();
-        Bukkit.getScheduler().runTask(this, itemManager);
 
-        //new ChatTask();
+        if (configManager.isBattleRoyalServer()) {
+            registerEvents();
+            Bukkit.getScheduler().runTask(this, itemManager);
+        }
+
+        airDropsEnabled = getServer().getPluginManager().getPlugin("CrazyEnvoys") != null;
+
+        if (airDropsEnabled) {
+            logger.info("Airdrops are enabled.");
+            crazyEnvoys = CrazyEnvoys.get();
+        } else {
+            logger.warning("Airdrops are not enabled.");
+        }
     }
 
     @Override
     public void onDisable() {
+        crazyEnvoys.getLocationSettings().clearSpawnLocations();
+        database.clearPlayersInGame();
         configManager.saveConfig();
-        database.clearQueue();
+        rediThread.interrupt();
         database.closeConnection();
-        this.getServer().getMessenger().unregisterOutgoingPluginChannel(this, "cullinggames:jedis");
     }
 
     private void registerCommands() {
         JoinQueueCommand queueCommand = new JoinQueueCommand(this);
         ReloadCommand reloadCommand = new ReloadCommand(this);
-        QueueTestCommand startCommand = new QueueTestCommand(this);
+        ForceStartCommand forceStartCommand = new ForceStartCommand(this);
 
         getCommand("queue").setExecutor(queueCommand);
         getCommand("reload").setExecutor(reloadCommand);
-        getCommand("starttest").setExecutor(startCommand);
+        getCommand("forceStart").setExecutor(forceStartCommand);
     }
 
     private void registerEvents() {
-        PlayerLeaveEvent playerLeaveEvent = new PlayerLeaveEvent();
         PlayerDiesEvent playerDiesEvent = new PlayerDiesEvent();
 
-        Bukkit.getPluginManager().registerEvents(playerLeaveEvent, this);
         Bukkit.getPluginManager().registerEvents(playerDiesEvent, this);
     }
 
@@ -102,16 +105,15 @@ public final class CullingGames extends JavaPlugin implements @NotNull PluginMes
         );
     }
 
-    public ServerInfo getServerInfo() {
-        return serverInfo;
-    }
-
     public Random getRandom() {
         return random;
     }
 
-    @Override
-    public void onPluginMessageReceived(@NotNull String s, @NotNull Player player, @NotNull byte[] bytes) {
+    public boolean isAirDropsEnabled() {
+        return airDropsEnabled;
+    }
 
+    public CrazyEnvoys getCrazyEnvoys() {
+        return crazyEnvoys;
     }
 }

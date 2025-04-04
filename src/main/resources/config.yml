@@ -4,12 +4,30 @@ items:
     chance: 100.0
     amount: 1
 
+lobbies:
+  min-lobby-size: 5
+  max-lobby-size: 30
+
 battle_royal_server_info:
-  ip: 192.168.0.0 #example change pls
-  port: 3000 #example change pls
   server-name: example #example change pls
+  is_battle_royal_server: false #change if this is the battle royal server
 
 redis_db:
   ip: 192.168.0.0 #example change pls
   port: 3000 #example change pls
   password: password #example change pls
+
+storm-info:
+  world-name: "world"
+  initial-border-size: 500.0
+  final-border-size: 50.0
+  shrink-time: 300
+  zone-phases: 5
+  pause-duration: 10
+
+airdrops:
+  airdrop-phase-start: 3
+  airdrop-interval: 30
+  #same value as the crazyenvoys config
+  max-airdrops: 7
+  stop-on-final-phase: true
