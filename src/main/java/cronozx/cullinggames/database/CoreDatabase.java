@@ -1,7 +1,7 @@
 package cronozx.cullinggames.database;
 
 import cronozx.cullinggames.CullingGames;
-import cronozx.cullinggames.tasks.StartBattleRoyal;
+import cronozx.cullinggames.tasks.StartBattleRoyalTasks;
 import cronozx.cullinggames.util.ConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -21,7 +21,7 @@ public class CoreDatabase {
     private static final ConfigManager configManager = CullingGames.getInstance().getConfigManager();
     private static final String dbPassword = configManager.getDbServerPass();
     private static final JedisPool jedisPool = new JedisPool(new JedisPoolConfig(), configManager.getDbServerIp(), configManager.getDbServerPort(), 2000, dbPassword);
-    private  static final Logger logger = CullingGames.getInstance().getLogger();
+    private static final Logger logger = CullingGames.getInstance().getLogger();
 
     public void closeConnection() {
         jedisPool.close();
@@ -80,7 +80,7 @@ public class CoreDatabase {
 
     public void clearPlayersInGame() {
         try (Jedis jedis = jedisPool.getResource()) {
-            jedis.hdel("playerPoints");
+            jedis.del("playerPoints");
         }
     }
 
@@ -118,10 +118,35 @@ public class CoreDatabase {
                 public void onMessage(String channel, String message) {
                     logger.info("Message: " + message);
                     if (message.equals("start") && configManager.isBattleRoyalServer()) {
-                        Bukkit.getScheduler().runTask(plugin, new StartBattleRoyal());
+                        Bukkit.getScheduler().runTask(plugin, new StartBattleRoyalTasks());
                     }
                 }
             }, "cullinggames:bukkit");
+        }
+    }
+
+    //Global config methods
+    public void saveMaxPlayers() {
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.set("maxPlayers", String.valueOf(configManager.getMaxLobbySize()));
+        }
+    }
+
+    public void saveMinPlayers() {
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.set("minPlayers", String.valueOf(configManager.getMinLobbySize()));
+        }
+    }
+
+    public int getMaxPlayers() {
+        try (Jedis jedis = jedisPool.getResource()) {
+            return Integer.valueOf(jedis.get("maxPlayers"));
+        }
+    }
+
+    public int getMinPlayers() {
+        try (Jedis jedis = jedisPool.getResource()) {
+            return Integer.valueOf(jedis.get("minPlayers"));
         }
     }
 }

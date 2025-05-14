@@ -21,30 +21,28 @@ repositories {
         url = "https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc"
     }
     maven {
-        "nexo"
+        name = "nexo"
         url = "https://repo.nexomc.com/releases"
     }
-    maven {
-        "velocity"
-        url = "https://repo.papermc.io/repository/maven-public/"
-    }
-
     maven {
         name = 'crazycrewReleases'
         url = uri('https://repo.crazycrew.us/releases')
         content {
             includeModule 'com.badbones69.crazyenvoys', 'crazyenvoys-paper-api'
         }
-        metadataSources {
-            artifact()
-            mavenPom()
-        }
+    }
+    maven {
+        name = "jitpack"
+        url = 'https://jitpack.io'
+    }
+    maven {
+        name = "auxilor"
+        url = "https://repo.auxilor.io/repository/maven-public/"
     }
 }
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
-    implementation (group: 'org.xerial', name: 'sqlite-jdbc', version: '3.48.0.0')
     compileOnly("com.nexomc:nexo:0.7.0")
     implementation 'redis.clients:jedis:5.2.0'
     implementation 'org.apache.commons:commons-pool2:2.12.0'
@@ -52,6 +50,9 @@ dependencies {
     compileOnly('com.badbones69.crazyenvoys:crazyenvoys-paper-api:1.8.2') {
         transitive = false
     }
+    compileOnly "com.willfp:EcoBits:1.8.4"
+    compileOnly "com.willfp:eco:6.75.2"
+    compileOnly("com.willfp:EcoPets:2.74.0")
 }
 
 def targetJavaVersion = 21

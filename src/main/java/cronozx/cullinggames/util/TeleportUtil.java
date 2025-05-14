@@ -3,9 +3,11 @@ package cronozx.cullinggames.util;
 import cronozx.cullinggames.CullingGames;
 import cronozx.cullinggames.database.CoreDatabase;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.Random;
 
 public class TeleportUtil {
@@ -38,6 +40,11 @@ public class TeleportUtil {
 
     public static void teleportPlayerVelocity(String server, String playerName) {
         String message = "teleportTo:" + server + ":" + playerName;
+        database.sendMessageToRedis("cullinggames:velocity", message);
+    }
+
+    public static void teleportPlayersVelocity(String server, List<String> playerNames) {
+        String message = "teleportPlayersTo:" + server + ":" + playerNames.toString();
         database.sendMessageToRedis("cullinggames:velocity", message);
     }
 }

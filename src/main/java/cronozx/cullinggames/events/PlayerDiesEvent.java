@@ -21,10 +21,6 @@ public class PlayerDiesEvent implements Listener {
         Player target = event.getPlayer();
         Player attacker = event.getPlayer().getKiller();
 
-        logger.info(database.getAllPlayersInGame().toString());
-        logger.info(String.valueOf(database.getPlayerPoints(target)));
-        logger.info(String.valueOf(database.inCullingGames(target)));
-
         if (database.inCullingGames(target)) {
             if (attacker != null && database.inCullingGames(attacker)) {
                 database.setPoints(attacker, database.getPlayerPoints(attacker) + 5);

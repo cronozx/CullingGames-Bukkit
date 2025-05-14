@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class DuringBattleRoyal implements Runnable {
+public class DuringBattleRoyalTasks implements Runnable {
 
     private static final CullingGames plugin = CullingGames.getInstance();
     private static final ConfigManager configManager = plugin.getConfigManager();
@@ -43,7 +43,7 @@ public class DuringBattleRoyal implements Runnable {
     private final int airdropStartPhase = configManager.getAirdropStartPhase();
     private static CrazyEnvoys crazyEnvoys;
 
-    public DuringBattleRoyal() {
+    public DuringBattleRoyalTasks() {
         this.world = Bukkit.getWorld(configManager.getWorldName());
         this.center = world.getSpawnLocation();
         this.initialRadius = configManager.getInitialBorderSize() / 2.0;
@@ -91,6 +91,7 @@ public class DuringBattleRoyal implements Runnable {
                     cancel();
                     return;
                 }
+                //check if player is in zone
                 checkPlayersAsync();
             }
         }.runTaskTimerAsynchronously(plugin, 0L, 20L);
@@ -317,6 +318,11 @@ public class DuringBattleRoyal implements Runnable {
         new BukkitRunnable() {
             @Override
             public void run() {
+                if (!isRunning) {
+                    cancel();
+                    return;
+                }
+
                 if (database.playersLeft() <= 1 && !database.getAllPlayersInGame().isEmpty()) {
                     var optionalPlayer = database.getAllPlayersInGame().getFirst().getPlayer();
                     if (optionalPlayer != null) {
@@ -326,13 +332,13 @@ public class DuringBattleRoyal implements Runnable {
                         ));
 
                         try {
-                            Thread.sleep(3000);
+                            Thread.sleep(5000);
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
 
                         TeleportUtil.teleportPlayerVelocity("hub", optionalPlayer.getName());
-                        DuringBattleRoyal.stop();
+                        DuringBattleRoyalTasks.stop();
                         this.cancel();
                     }
                 }
@@ -345,5 +351,7 @@ public class DuringBattleRoyal implements Runnable {
 
         crazyEnvoys.getLocationSettings().clearSpawnLocations();
         crazyEnvoys.getCrazyManager().removeAllEnvoys();
+
+        database.clearPlayersInGame();
     }
 }

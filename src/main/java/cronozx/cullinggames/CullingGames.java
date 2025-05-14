@@ -1,7 +1,11 @@
 package cronozx.cullinggames;
 
 import com.badbones69.crazyenvoys.CrazyEnvoys;
+import com.willfp.ecobits.EcoBitsPlugin;
+import com.willfp.ecobits.currencies.Currencies;
+import com.willfp.ecopets.api.EcoPetsAPI;
 import cronozx.cullinggames.commands.ForceStartCommand;
+import cronozx.cullinggames.commands.ForceStopCommand;
 import cronozx.cullinggames.commands.JoinQueueCommand;
 import cronozx.cullinggames.commands.ReloadCommand;
 import cronozx.cullinggames.database.CoreDatabase;
@@ -23,7 +27,11 @@ public final class CullingGames extends JavaPlugin {
     private final Random random = new Random();
     private final Thread rediThread = new Thread(() -> database.onMessageFromRedis());
     private boolean airDropsEnabled;
+    private boolean ecoBitsEnabled;
+    private boolean pointsEnabled;
     private CrazyEnvoys crazyEnvoys;
+    private EcoPetsAPI ecoPets;
+    private boolean ecoPetsEnabled;
 
     @Override
     public void onEnable() {
@@ -40,28 +48,53 @@ public final class CullingGames extends JavaPlugin {
 
         rediThread.start();
 
-        itemManager = new ItemManager();
         registerCommands();
 
         if (configManager.isBattleRoyalServer()) {
+            database.saveMaxPlayers();
+            database.saveMinPlayers();
+
+            itemManager = new ItemManager();
+
+            airDropsEnabled = getServer().getPluginManager().getPlugin("CrazyEnvoys") != null;
+            if (airDropsEnabled) {
+                crazyEnvoys = CrazyEnvoys.get();
+                logger.info("Airdrops are enabled.");
+            } else {
+                logger.warning("Airdrops are not enabled.");
+            }
+
+            ecoBitsEnabled = getServer().getPluginManager().getPlugin("EcoBits") != null;
+            if (ecoBitsEnabled) {
+                logger.info("EcoBits enabled");
+                Currencies.update(EcoBitsPlugin.getInstance());
+                if (Currencies.getByID("points") == null) {
+                    logger.severe("Add the points currency in the EcoBits config.");
+                    pointsEnabled = false;
+                } else {
+                    pointsEnabled = true;
+                }
+            } else {
+                logger.severe("EcoBits not enabled, shop function not available.");
+            }
+
+            ecoPetsEnabled = getServer().getPluginManager().getPlugin("EcoPets") != null;
+            if (ecoPetsEnabled) {
+                logger.info("EcoPets enabled");
+                ecoPets = EcoPetsAPI.getInstance();
+            }
+
             registerEvents();
             Bukkit.getScheduler().runTask(this, itemManager);
-        }
-
-        airDropsEnabled = getServer().getPluginManager().getPlugin("CrazyEnvoys") != null;
-
-        if (airDropsEnabled) {
-            logger.info("Airdrops are enabled.");
-            crazyEnvoys = CrazyEnvoys.get();
-        } else {
-            logger.warning("Airdrops are not enabled.");
         }
     }
 
     @Override
     public void onDisable() {
         crazyEnvoys.getLocationSettings().clearSpawnLocations();
-        database.clearPlayersInGame();
+        if (configManager.isBattleRoyalServer()) {
+            database.clearPlayersInGame();
+        }
         configManager.saveConfig();
         rediThread.interrupt();
         database.closeConnection();
@@ -71,16 +104,18 @@ public final class CullingGames extends JavaPlugin {
         JoinQueueCommand queueCommand = new JoinQueueCommand(this);
         ReloadCommand reloadCommand = new ReloadCommand(this);
         ForceStartCommand forceStartCommand = new ForceStartCommand(this);
+        ForceStopCommand forceStopCommand = new ForceStopCommand(this);
 
         getCommand("queue").setExecutor(queueCommand);
         getCommand("reload").setExecutor(reloadCommand);
         getCommand("forceStart").setExecutor(forceStartCommand);
+        if (configManager.isBattleRoyalServer()) {
+            getCommand("forceStop").setExecutor(forceStopCommand);
+        }
     }
 
     private void registerEvents() {
-        PlayerDiesEvent playerDiesEvent = new PlayerDiesEvent();
-
-        Bukkit.getPluginManager().registerEvents(playerDiesEvent, this);
+        Bukkit.getPluginManager().registerEvents(new PlayerDiesEvent(), this);
     }
 
     public static CullingGames getInstance() {
@@ -99,12 +134,6 @@ public final class CullingGames extends JavaPlugin {
         return configManager;
     }
 
-    private void printStartupMsg() {
-        logger.info(
-                "Culling Games plugin created by cronozx"
-        );
-    }
-
     public Random getRandom() {
         return random;
     }
@@ -115,5 +144,19 @@ public final class CullingGames extends JavaPlugin {
 
     public CrazyEnvoys getCrazyEnvoys() {
         return crazyEnvoys;
+    }
+
+    public EcoPetsAPI getEcoPets() { return ecoPets; }
+
+    private void printStartupMsg() {
+        logger.info(
+                "\n" +
+                        "░█████╗░██████╗░░█████╗░███╗░░██╗░█████╗░███████╗██╗░░██╗\n" +
+                        "██╔══██╗██╔══██╗██╔══██╗████╗░██║██╔══██╗╚════██║╚██╗██╔╝\n" +
+                        "██║░░╚═╝██████╔╝██║░░██║██╔██╗██║██║░░██║░░███╔═╝░╚███╔╝░\n" +
+                        "██║░░██╗██╔══██╗██║░░██║██║╚████║██║░░██║██╔══╝░░░██╔██╗░\n" +
+                        "╚█████╔╝██║░░██║╚█████╔╝██║░╚███║╚█████╔╝███████╗██╔╝╚██╗\n" +
+                        "░╚════╝░╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝░╚════╝░╚══════╝╚═╝░░╚═╝"
+        );
     }
 }

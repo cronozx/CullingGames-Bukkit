@@ -4,7 +4,6 @@ import cronozx.cullinggames.CullingGames;
 import cronozx.cullinggames.database.CoreDatabase;
 import cronozx.cullinggames.util.ConfigManager;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
@@ -22,7 +21,7 @@ public class JoinQueueCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
         OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(commandSender.getName());
-        if (offlinePlayer.getPlayer() != null && !database.getQueue().contains(offlinePlayer) && !(database.getQueue().size() >= configManager.getMaxLobbySize())) {
+        if (offlinePlayer.getPlayer() != null && !database.getQueue().contains(offlinePlayer) && !(database.getQueue().size() >= database.getMaxPlayers())) {
             database.sendMessageToRedis("cullinggames:velocity", "queue:" + offlinePlayer.getUniqueId());
 
             try {
@@ -30,12 +29,13 @@ public class JoinQueueCommand implements CommandExecutor {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-
-            offlinePlayer.getPlayer().sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7You are now queued. " + "§8(§r" + database.getQueue().size() + "§8/§r" + configManager.getMaxLobbySize() + "§8)§r"));
+            if (!database.getQueue().isEmpty()) {
+                offlinePlayer.getPlayer().sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7You are now queued. " + "§8(§r" + database.getQueue().size() + "§8/§r" + configManager.getMaxLobbySize() + "§8)§r"));
+            }
         } else {
             if (offlinePlayer.getPlayer() != null && database.getQueue().contains(offlinePlayer)) {
                 offlinePlayer.getPlayer().sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7You are already queued."));
-            } else if (offlinePlayer.getPlayer() != null && database.getQueue().size() >= configManager.getMaxLobbySize()) {
+            } else if (offlinePlayer.getPlayer() != null && database.getQueue().size() >= database.getMaxPlayers()) {
                 offlinePlayer.getPlayer().sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7The queue is full."));
             }
         }

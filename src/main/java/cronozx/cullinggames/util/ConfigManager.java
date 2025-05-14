@@ -39,6 +39,25 @@ public class ConfigManager {
                 throw new RuntimeException(e);
             }
         }
+
+        if (!config.getBoolean("battle_royal_server_info" + ".is_battle_royal_server")) {
+            createSimpleConfig();
+        }
+    }
+
+    private void createSimpleConfig() {
+        FileConfiguration simplifiedConfig = new YamlConfiguration();
+
+        simplifiedConfig.set("battle_royal_server_info", config.getConfigurationSection("battle_royal_server_info"));
+        simplifiedConfig.set("redis_db", config.getConfigurationSection("redis_db"));
+
+        try {
+            simplifiedConfig.save(configFile);
+            plugin.reloadConfig();
+            config = plugin.getConfig();
+        } catch (IOException e) {
+            plugin.getLogger().severe("Could not save simple config: " + e.getMessage());
+        }
     }
 
     public Set<String> getItems() {

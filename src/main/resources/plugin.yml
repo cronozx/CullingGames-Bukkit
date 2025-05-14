@@ -3,7 +3,7 @@ version: '1.0-SNAPSHOT'
 main: cronozx.cullinggames.CullingGames
 api-version: '1.21'
 authors: [ cronozx ]
-softdepend: [CrazyEnvoys]
+softdepend: [CrazyEnvoys, EcoBits, EcoShop, EcoPets]
 
 commands:
   queue:
@@ -15,3 +15,6 @@ commands:
   forceStart:
     description: Force starts event
     usage: /forceStart
+  forceStop:
+    description: Force stops culling games
+    usage: /forceStop
