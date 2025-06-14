@@ -71,7 +71,7 @@ public class StartBattleRoyalTasks implements Runnable {
         new BukkitRunnable() {
             private int attempts = 0;
             private final int MAX_ATTEMPTS = 200;
-
+            
             @Override
             public void run() {
                 ArrayList<OfflinePlayer> players = database.getAllPlayersInGame();

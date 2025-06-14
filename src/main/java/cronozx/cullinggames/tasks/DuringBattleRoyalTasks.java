@@ -324,7 +324,7 @@ public class DuringBattleRoyalTasks implements Runnable {
                 }
 
                 if (database.playersLeft() <= 1 && !database.getAllPlayersInGame().isEmpty()) {
-                    var optionalPlayer = database.getAllPlayersInGame().getFirst().getPlayer();
+                    Player optionalPlayer = database.getAllPlayersInGame().get(0).getPlayer();
                     if (optionalPlayer != null) {
                         optionalPlayer.showTitle(Title.title(
                                 Component.text("You Win!!!!").decorate(TextDecoration.BOLD).color(TextColor.color(190, 0, 255)),
