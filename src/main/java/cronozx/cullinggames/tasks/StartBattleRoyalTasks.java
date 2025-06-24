@@ -56,9 +56,8 @@ public class StartBattleRoyalTasks implements Runnable {
         BukkitRunnable waitingTask = new BukkitRunnable() {
             @Override
             public void run() {
-                for (OfflinePlayer offlinePlayer : queue) {
-                    if (offlinePlayer.getPlayer() != null) {
-                        Player player = offlinePlayer.getPlayer();
+                for (Player player : plugin.getServer().getOnlinePlayers()) {
+                    if (player.isOnline()) {
                         player.addPotionEffect(PotionEffectType.SLOWNESS.createEffect(40, 10000));
                         player.showTitle(Title.title(Component.text("Waiting For Players...").decorate(TextDecoration.BOLD).color(TextColor.color(255, 0, 0)), Component.empty()));
                     }
@@ -80,7 +79,7 @@ public class StartBattleRoyalTasks implements Runnable {
 
                 if (allOnline && players.size() >= database.getMinPlayers()) {
                     cancel();
-                    randomTeleportAndStart(players);
+                    randomTeleportAndStart();
                     waitingTask.cancel();
                 } else if (attempts++ >= MAX_ATTEMPTS) {
                     cancel();
@@ -125,7 +124,7 @@ public class StartBattleRoyalTasks implements Runnable {
 
         if (database.getAllPlayersInGame().size() >= database.getMinPlayers()) {
             //start logic
-            randomTeleportAndStart(players);
+            randomTeleportAndStart();
         } else {
             //send players to hub and send them a message
             for (Player player: Bukkit.getServer().getOnlinePlayers()) {
@@ -134,13 +133,10 @@ public class StartBattleRoyalTasks implements Runnable {
         }
     }
 
-    private void randomTeleportAndStart(ArrayList<OfflinePlayer> players) {
+    private void randomTeleportAndStart() {
         // Random teleport connected players
-        for (OfflinePlayer player : players) {
-            Player onlinePlayer = player.getPlayer();
-            if (onlinePlayer != null) {
-                randomTP(onlinePlayer.getWorld(), onlinePlayer);
-            }
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            randomTP(player.getWorld(), player);
         }
 
         givePlayersKogane();

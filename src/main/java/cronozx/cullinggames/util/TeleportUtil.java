@@ -3,7 +3,6 @@ package cronozx.cullinggames.util;
 import cronozx.cullinggames.CullingGames;
 import cronozx.cullinggames.database.CoreDatabase;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 

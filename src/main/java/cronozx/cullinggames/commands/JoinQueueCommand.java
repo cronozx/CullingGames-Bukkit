@@ -9,6 +9,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public class JoinQueueCommand implements CommandExecutor {
@@ -21,22 +22,29 @@ public class JoinQueueCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
         OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(commandSender.getName());
-        if (offlinePlayer.getPlayer() != null && !database.getQueue().contains(offlinePlayer) && !(database.getQueue().size() >= database.getMaxPlayers())) {
-            database.sendMessageToRedis("cullinggames:velocity", "queue:" + offlinePlayer.getUniqueId());
 
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            if (!database.getQueue().isEmpty()) {
-                offlinePlayer.getPlayer().sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7You are now queued. " + "§8(§r" + database.getQueue().size() + "§8/§r" + configManager.getMaxLobbySize() + "§8)§r"));
-            }
-        } else {
-            if (offlinePlayer.getPlayer() != null && database.getQueue().contains(offlinePlayer)) {
-                offlinePlayer.getPlayer().sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7You are already queued."));
-            } else if (offlinePlayer.getPlayer() != null && database.getQueue().size() >= database.getMaxPlayers()) {
-                offlinePlayer.getPlayer().sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7The queue is full."));
+        if (offlinePlayer.getPlayer() != null) {
+            Player player = offlinePlayer.getPlayer();
+
+            if (!database.getQueue().contains(offlinePlayer) && !(database.getQueue().size() >= database.getMaxPlayers())) {
+                database.sendMessageToRedis("cullinggames:velocity", "queue:" + player.getUniqueId());
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+
+                if (!database.getQueue().isEmpty()) {
+                    player.sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7You are now queued. " + "§8(§r" + database.getQueue().size() + "§8/§r" + configManager.getMaxLobbySize() + "§8)§r"));
+                }
+
+            } else {
+                if (database.getQueue().contains(offlinePlayer)) {
+                    player.sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7You are already queued."));
+                } else if (database.getQueue().size() >= database.getMaxPlayers()) {
+                    player.sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7The queue is full."));
+                }
             }
         }
 
