@@ -27,7 +27,7 @@ public class PlayerDiesEvent implements Listener {
         Currency points = Currencies.getByID("Points");
 
         if (database.inCullingGames(target)) {
-            if (attacker != null && database.inCullingGames(attacker)) {
+            if (attacker != null && database.inCullingGames(attacker) && CullingGames.getInstance().getPointsEnabled()) {
                 CurrencyUtils.adjustBalance(attacker, points, BigDecimal.valueOf(5));
             }
 

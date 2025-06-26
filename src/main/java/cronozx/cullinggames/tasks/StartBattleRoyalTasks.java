@@ -10,6 +10,9 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.attribute.AttributeModifier.Operation;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.entity.Player;
@@ -31,19 +34,25 @@ public class StartBattleRoyalTasks implements Runnable {
     private static final ItemManager itemManager = CullingGames.getInstance().getItemManager();
     private static final Random random = CullingGames.getInstance().getRandom();
     private static final Logger logger = Logger.getLogger(StartBattleRoyalTasks.class.getName());
-    private static final ArrayList<OfflinePlayer> queue = database.getQueue();
+    private static ArrayList<OfflinePlayer> queue;
 
     public StartBattleRoyalTasks() {}
 
     @Override
     public void run() {
-        logger.info("StartBattleRoyal task started.");
-        database.initPointsPlayers(queue);
-        logger.info("Initialized points for players in the queue.");
-        database.clearQueue();
+        queue = database.getQueue();
 
-        generateChests();
-        teleportPlayersAndStart();
+        if (queue.size() >= database.getMinPlayers()) {
+            generateChests();
+            teleportPlayersAndStart();
+
+            database.initPointsPlayers(queue);
+
+            database.clearQueue();
+        } else {
+            database.sendMessageToRedis("cullinggames:velocity", "gameCanceledEarly");
+            database.clearQueue();
+        }
     }
 
     private void teleportPlayersAndStart() {
@@ -56,9 +65,14 @@ public class StartBattleRoyalTasks implements Runnable {
         BukkitRunnable waitingTask = new BukkitRunnable() {
             @Override
             public void run() {
+                AttributeModifier noJump = new AttributeModifier(new NamespacedKey(plugin, "cul"), -1, Operation.ADD_NUMBER);
+
                 for (Player player : plugin.getServer().getOnlinePlayers()) {
                     if (player.isOnline()) {
                         player.addPotionEffect(PotionEffectType.SLOWNESS.createEffect(40, 10000));
+                        if (!player.getAttribute(Attribute.JUMP_STRENGTH).getModifiers().contains(noJump)) {
+                            player.getAttribute(Attribute.JUMP_STRENGTH).addTransientModifier(noJump);
+                        }
                         player.showTitle(Title.title(Component.text("Waiting For Players...").decorate(TextDecoration.BOLD).color(TextColor.color(255, 0, 0)), Component.empty()));
                     }
                 }
@@ -127,9 +141,8 @@ public class StartBattleRoyalTasks implements Runnable {
             randomTeleportAndStart();
         } else {
             //send players to hub and send them a message
-            for (Player player: Bukkit.getServer().getOnlinePlayers()) {
-                database.sendMessageToRedis("cullinggames:velocity", "gameCanceled:" + player.getUniqueId());
-            }
+            database.sendMessageToRedis("cullinggames:velocity", "gameCanceled");
+            DuringBattleRoyalTasks.stop();
         }
     }
 
@@ -153,11 +166,16 @@ public class StartBattleRoyalTasks implements Runnable {
             public void run() {
                 for (Player player: Bukkit.getServer().getOnlinePlayers()) {
                     player.addPotionEffect(PotionEffectType.SLOWNESS.createEffect(40, 10000));
+                    player.addPotionEffect(PotionEffectType.JUMP_BOOST.createEffect(40, -100));
                     if (countdown == 0) {
                         player.showTitle(Title.title(
-                                Component.text("GO!").decorate(TextDecoration.BOLD).color(TextColor.color(255, 0, 0)),
-                                Component.empty()
+                            Component.text("GO!").decorate(TextDecoration.BOLD).color(TextColor.color(255, 0, 0)),
+                            Component.empty()
                         ));
+
+                        if (player.getAttribute(Attribute.JUMP_STRENGTH).getValue() != -1) {
+                            player.getAttribute(Attribute.JUMP_STRENGTH).removeModifier(new NamespacedKey(plugin, "cul"));
+                        }
                     } else {
                         player.showTitle(Title.title(
                                 Component.text("Game Starts In...").decorate(TextDecoration.BOLD).color(TextColor.color(255, 0, 0)),

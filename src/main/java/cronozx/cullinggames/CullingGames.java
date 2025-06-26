@@ -91,10 +91,14 @@ public final class CullingGames extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        crazyEnvoys.getLocationSettings().clearSpawnLocations();
         if (configManager.isBattleRoyalServer()) {
-            database.clearPlayersInGame();
+            crazyEnvoys.getLocationSettings().clearSpawnLocations();
+            if (configManager.isBattleRoyalServer()) {
+                database.clearPlayersInGame();
+            }
         }
+
+
         configManager.saveConfig();
         rediThread.interrupt();
         database.closeConnection();
@@ -104,12 +108,12 @@ public final class CullingGames extends JavaPlugin {
         JoinQueueCommand queueCommand = new JoinQueueCommand(this);
         ReloadCommand reloadCommand = new ReloadCommand(this);
         ForceStartCommand forceStartCommand = new ForceStartCommand(this);
-        ForceStopCommand forceStopCommand = new ForceStopCommand(this);
 
         getCommand("queue").setExecutor(queueCommand);
         getCommand("reload").setExecutor(reloadCommand);
         getCommand("forceStart").setExecutor(forceStartCommand);
         if (configManager.isBattleRoyalServer()) {
+            ForceStopCommand forceStopCommand = new ForceStopCommand(this);
             getCommand("forceStop").setExecutor(forceStopCommand);
         }
     }
@@ -144,6 +148,10 @@ public final class CullingGames extends JavaPlugin {
 
     public CrazyEnvoys getCrazyEnvoys() {
         return crazyEnvoys;
+    }
+
+    public boolean getPointsEnabled() {
+        return pointsEnabled;
     }
 
     public EcoPetsAPI getEcoPets() { return ecoPets; }
