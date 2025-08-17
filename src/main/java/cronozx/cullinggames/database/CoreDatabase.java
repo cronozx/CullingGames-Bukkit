@@ -3,6 +3,7 @@ package cronozx.cullinggames.database;
 import cronozx.cullinggames.CullingGames;
 import cronozx.cullinggames.tasks.StartBattleRoyalTasks;
 import cronozx.cullinggames.util.ConfigManager;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -13,6 +14,7 @@ import redis.clients.jedis.JedisPubSub;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -119,6 +121,21 @@ public class CoreDatabase {
                     logger.info("Message: " + message);
                     if (message.equals("start") && configManager.isBattleRoyalServer()) {
                         Bukkit.getScheduler().runTask(plugin, new StartBattleRoyalTasks());
+                    } else if (message.startsWith("confirmQueue")) {
+                        String playerUUID = message.split(":")[1];
+                        Player player = Bukkit.getPlayer(UUID.fromString(playerUUID));
+
+                        if (player == null) {
+                            return;
+                        }
+
+                        Bukkit.getScheduler().runTask(CullingGames.getInstance(), () -> {
+                            ArrayList<OfflinePlayer> updatedQueue = getQueue();
+                            if (!updatedQueue.isEmpty()) {
+                                player.sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7You are now queued. " +
+                                        "§8(§r" + updatedQueue.size() + "§8/§r" + configManager.getMaxLobbySize() + "§8)§r"));
+                            }
+                        });
                     }
                 }
             }, "cullinggames:bukkit");

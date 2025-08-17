@@ -13,14 +13,20 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 public class JoinQueueCommand implements CommandExecutor {
 
-    private static final CoreDatabase database = CullingGames.getInstance().getDatabase();
-    private static final ConfigManager configManager = CullingGames.getInstance().getConfigManager();
+    private final CullingGames plugin;
+    private final CoreDatabase database;
+    private final ConfigManager configManager;
 
-    public JoinQueueCommand(CullingGames plugin) {}
+    public JoinQueueCommand(CullingGames plugin) {
+        this.plugin = plugin;
+        this.database = plugin.getDatabase();
+        this.configManager = plugin.getConfigManager();
+    }
 
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
@@ -31,20 +37,9 @@ public class JoinQueueCommand implements CommandExecutor {
             ArrayList<OfflinePlayer> queue = database.getQueue();
 
             if (!queue.contains(offlinePlayer) && !(queue.size() >= database.getMaxPlayers())) {
-                database.sendMessageToRedis("cullinggames:velocity", "queue:" + player.getUniqueId());
-
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-
-                queue = database.getQueue();
-
-                if (!queue.isEmpty()) {
-                    player.sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7You are now queued. " + "§8(§r" + queue.size() + "§8/§r" + configManager.getMaxLobbySize() + "§8)§r"));
-                }
-
+                Bukkit.getScheduler().runTaskAsynchronously(CullingGames.getInstance(), () -> {
+                    database.sendMessageToRedis("cullinggames:velocity", "queue:" + player.getUniqueId());
+                });
             } else {
                 if (queue.contains(offlinePlayer)) {
                     player.sendMessage(Component.newline().content("§4§lCulling Games §r§8§l>> §r§7You are already queued."));
